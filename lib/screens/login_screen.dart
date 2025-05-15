@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutterauthentication/screens/admin_dashboard.dart';
 import 'package:flutterauthentication/screens/register_screen.dart';
 import 'package:flutterauthentication/screens/user_dashboard.dart';
+import 'package:flutterauthentication/screens/reset_password_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailCtrl = TextEditingController();
@@ -111,7 +112,18 @@ class LoginScreen extends StatelessWidget {
                     },
                     child: const Text('No account? Register'),
                   ),
-                ],
+                const SizedBox(height: 7),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ResetPasswordScreen()),
+                ); // Navigate to Reset Password Screen
+              },
+              child: const Text('Forgot Password?'),
+            ),
+          ],
+              
               ),
             ),
           ),
