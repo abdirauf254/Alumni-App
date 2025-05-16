@@ -20,12 +20,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: emailCtrl.text.trim(),
         password: passCtrl.text.trim(),
       );
+ 
+  await userCred.user!.sendEmailVerification();
 
       await FirebaseFirestore.instance.collection('users').doc(userCred.user!.uid).set({
         'email': emailCtrl.text.trim(),
         'role': selectedRole,
       });
 
+   ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verification email sent. Please verify your email before logging in.')),
+      );
+      
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Register failed: $e')));
@@ -37,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [Colors.purpleAccent, Colors.deepPurple]),
+          gradient: LinearGradient(colors: [Color.fromARGB(255, 80, 79, 80), Color.fromARGB(255, 84, 84, 85)]),
         ),
         child: Center(
           child: Card(

@@ -18,7 +18,16 @@ class LoginScreen extends StatelessWidget {
         email: emailCtrl.text.trim(),
         password: passCtrl.text.trim(),
       );
-
+ 
+ // Check if email is verified
+    if (!(userCred.user?.emailVerified ?? false)) {
+      await FirebaseAuth.instance.signOut();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please verify your email before logging in.')),
+      );
+      return;
+    }
+    
       final roleDoc =
           await FirebaseFirestore.instance
               .collection('users')
