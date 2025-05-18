@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Role Based Login',
+      title: 'Alumni Project',
       theme: ThemeData(useMaterial3: true),
       initialRoute:
           FirebaseAuth.instance.currentUser == null ? '/login' : '/home',
