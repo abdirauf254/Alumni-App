@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterauthentication/firebase_options.dart';
-import 'package:flutterauthentication/screens/admin_dashboard.dart';
-import 'package:flutterauthentication/screens/login_screen.dart';
-import 'package:flutterauthentication/screens/user_dashboard.dart';
+import 'package:flutterauthentication/screens/admin/admin_home.dart';
+import 'package:flutterauthentication/screens/auth/login_screen.dart';
+import 'package:flutterauthentication/screens/user/user_home.dart';
 
 
 
