@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutterauthentication/screens/admin/manage_announcements_screen.dart';
+import 'package:flutterauthentication/screens/user/announcements_screen.dart';
 import 'dashboard_screen.dart';
 import 'manage_users_screen.dart';
 import 'create_event_screen.dart';
@@ -61,7 +61,7 @@ class _AdminHomeState extends State<AdminHome> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueGrey),
+              decoration: BoxDecoration(color: Color.from(alpha: 0.788, red: 0.039, green: 0.055, blue: 0.945)),
               child: Text('Admin Panel', style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             _buildDrawerItem(Icons.dashboard, 'Dashboard', 0),
