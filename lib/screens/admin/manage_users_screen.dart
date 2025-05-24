@@ -76,12 +76,112 @@ class _ManageUsersScreenState extends State<ManageUsersScreen>
   }
 
   void deleteUser(String uid) async {
-    await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User deleted')));
-    _lastDoc = null;
-    _hasNextPage = true;
-    fetchUsers();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Confirmation'),
+        content: const Text('Are you sure you want to delete this user?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User deleted')),
+      );
+      _lastDoc = null;
+      _hasNextPage = true;
+      fetchUsers();
+    }
+  }
+
+  void viewUser(DocumentSnapshot user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('User Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Email: ${user['email']}'),
+            Text('Role: ${user['role']}'),
+            if (user.data().toString().contains('name'))
+              Text('Name: ${user['name']}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void editUser(DocumentSnapshot user) {
+    final _emailController = TextEditingController(text: user['email']);
+    String selectedRole = user['role'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit User'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            DropdownButtonFormField<String>(
+              value: selectedRole,
+              items: const [
+                DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                DropdownMenuItem(value: 'user', child: Text('User')),
+              ],
+              onChanged: (value) {
+                if (value != null) selectedRole = value;
+              },
+              decoration: const InputDecoration(labelText: 'Role'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.id)
+                  .update({
+                'email': _emailController.text.trim(),
+                'role': selectedRole,
+              });
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('User updated successfully')),
+              );
+              fetchUsers();
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -129,10 +229,25 @@ class _ManageUsersScreenState extends State<ManageUsersScreen>
                       return ListTile(
                         title: Text(user['email']),
                         subtitle: Text('Role: ${user['role']}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () =>
-                              deleteUser(user.id), // Use user.id for UID
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.visibility),
+                              tooltip: 'View',
+                              onPressed: () => viewUser(user),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              tooltip: 'Edit',
+                              onPressed: () => editUser(user),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              tooltip: 'Delete',
+                              onPressed: () => deleteUser(user.id),
+                            ),
+                          ],
                         ),
                       );
                     },

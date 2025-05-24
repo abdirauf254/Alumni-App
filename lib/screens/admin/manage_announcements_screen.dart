@@ -1,167 +1,163 @@
-import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class ManageAnnouncementScreen extends StatefulWidget {
-  const ManageAnnouncementScreen({super.key});
+class ManageAnnouncementsScreen extends StatefulWidget {
+  const ManageAnnouncementsScreen({super.key});
 
   @override
-  State<ManageAnnouncementScreen> createState() => _ManageAnnouncementScreenState();
+  State<ManageAnnouncementsScreen> createState() => _ManageAnnouncementsScreenState();
 }
 
-class _ManageAnnouncementScreenState extends State<ManageAnnouncementScreen> {
-  final CollectionReference announcementsRef =
-      FirebaseFirestore.instance.collection('announcements');
+class _ManageAnnouncementsScreenState extends State<ManageAnnouncementsScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _searchController = TextEditingController();
+  final int _limit = 10;
+  DocumentSnapshot? _lastDocument;
+  bool _isLoading = false;
+  bool _hasMore = true;
+  String _searchQuery = '';
+  List<DocumentSnapshot> _announcements = [];
+  String? _userRole;
 
-  Future<void> _deleteAnnouncement(String id, String? imageUrl) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Announcement'),
-        content: const Text('Are you sure you want to delete this announcement?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
-        ],
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserRole();
+    _fetchAnnouncements();
+  }
 
-    if (confirm ?? false) {
-      await announcementsRef.doc(id).delete();
-
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        final ref = FirebaseStorage.instance.refFromURL(imageUrl);
-        await ref.delete();
-      }
+  Future<void> _fetchUserRole() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      setState(() {
+        _userRole = userDoc['role'];
+      });
     }
   }
 
-  void _editAnnouncement(String id, Map<String, dynamic> data) {
-    final titleCtrl = TextEditingController(text: data['title']);
-    final descCtrl = TextEditingController(text: data['description']);
-    String? imageUrl = data['imageUrl'];
-    File? newImageFile;
+  Future<void> _fetchAnnouncements() async {
+    if (_isLoading || !_hasMore) return;
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setStateDialog) {
-          return AlertDialog(
-            title: const Text('Edit Announcement'),
-            content: SingleChildScrollView(
-              child: Column(
-                children: [
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: descCtrl,
-                    decoration: const InputDecoration(labelText: 'Description'),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 10),
-                  if (newImageFile != null)
-                    Image.file(newImageFile!, height: 100)
-                  else if (imageUrl != null && imageUrl.isNotEmpty)
-                    Image.network(imageUrl!, height: 100),
-                  TextButton.icon(
-                    icon: const Icon(Icons.image),
-                    label: const Text('Change Image'),
-                    onPressed: () async {
-                      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-                      if (picked != null) {
-                        setStateDialog(() {
-                          newImageFile = File(picked.path);
-                        });
-                      }
-                    },
-                  )
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              ElevatedButton(
-                onPressed: () async {
-                  String? updatedImageUrl = imageUrl;
+    setState(() {
+      _isLoading = true;
+    });
 
-                  if (newImageFile != null) {
-                    final ref = FirebaseStorage.instance
-                        .ref('announcements/${DateTime.now().millisecondsSinceEpoch}.jpg');
-                    await ref.putFile(newImageFile!);
-                    updatedImageUrl = await ref.getDownloadURL();
-                  }
+    Query query = _firestore
+        .collection('announcements')
+        .orderBy('createdAt', descending: true)
+        .limit(_limit);
 
-                  await announcementsRef.doc(id).update({
-                    'title': titleCtrl.text.trim(),
-                    'description': descCtrl.text.trim(),
-                    'imageUrl': updatedImageUrl,
-                  });
+    if (_searchQuery.isNotEmpty) {
+      query = query.where('title', isGreaterThanOrEqualTo: _searchQuery)
+                   .where('title', isLessThanOrEqualTo: '$_searchQuery\uf8ff');
+    }
 
-                  Navigator.pop(ctx);
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        });
-      },
-    );
+    if (_lastDocument != null) {
+      query = query.startAfterDocument(_lastDocument!);
+    }
+
+    QuerySnapshot querySnapshot = await query.get();
+    if (querySnapshot.docs.length < _limit) {
+      _hasMore = false;
+    }
+
+    if (querySnapshot.docs.isNotEmpty) {
+      _lastDocument = querySnapshot.docs.last;
+      setState(() {
+        _announcements.addAll(querySnapshot.docs);
+      });
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _deleteAnnouncement(String id) async {
+    await _firestore.collection('announcements').doc(id).delete();
+    setState(() {
+      _announcements.removeWhere((doc) => doc.id == id);
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+      _announcements.clear();
+      _lastDocument = null;
+      _hasMore = true;
+    });
+    _fetchAnnouncements();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_userRole == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_userRole != 'admin') {
+      return const Scaffold(
+        body: Center(child: Text('Access Denied')),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Announcements')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: announcementsRef.orderBy('timestamp', descending: true).snapshots(),
-        builder: (ctx, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      appBar: AppBar(
+        title: const Text('Manage Announcements'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                labelText: 'Search Announcements',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: _onSearchChanged,
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _announcements.length + 1,
+              itemBuilder: (context, index) {
+                if (index == _announcements.length) {
+                  if (_isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (_hasMore) {
+                    _fetchAnnouncements();
+                    return const SizedBox.shrink();
+                  } else {
+                    return const Center(child: Text('No more announcements'));
+                  }
+                }
 
-          final announcements = snapshot.data?.docs ?? [];
-
-          if (announcements.isEmpty) {
-            return const Center(child: Text('No announcements found.'));
-          }
-
-          return ListView.builder(
-            itemCount: announcements.length,
-            itemBuilder: (ctx, i) {
-              final data = announcements[i].data() as Map<String, dynamic>;
-              final docId = announcements[i].id;
-
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  leading: data['imageUrl'] != null
-                      ? Image.network(data['imageUrl'], width: 50, height: 50, fit: BoxFit.cover)
-                      : const Icon(Icons.announcement),
-                  title: Text(data['title'] ?? ''),
-                  subtitle: Text(data['description'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _editAnnouncement(docId, data);
-                      } else if (value == 'delete') {
-                        _deleteAnnouncement(docId, data['imageUrl']);
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                    ],
+                var announcement = _announcements[index].data() as Map<String, dynamic>;
+                return Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: ListTile(
+                    title: Text(announcement['title']),
+                    subtitle: Text(announcement['description']),
+                    trailing: _userRole == 'admin'
+                        ? IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteAnnouncement(_announcements[index].id),
+                          )
+                        : null,
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

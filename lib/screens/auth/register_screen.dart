@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,100 +11,245 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final emailCtrl = TextEditingController();
-  final passCtrl = TextEditingController();
-  String selectedRole = 'user';
+  final _formKey = GlobalKey<FormState>();
 
-  Future<void> registerUser() async {
+  final TextEditingController firstNameCtrl = TextEditingController();
+  final TextEditingController lastNameCtrl = TextEditingController();
+  final TextEditingController emailCtrl = TextEditingController();
+  final TextEditingController passwordCtrl = TextEditingController();
+  final TextEditingController confirmPasswordCtrl = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+  bool _agreedToTerms = false;
+  String _selectedRole = 'User';
+
+  bool get isFormValid =>
+      _formKey.currentState?.validate() ?? false;
+
+  void showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black87,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
+
+  void registerUser() async {
+    if (!isFormValid) return;
+
+    setState(() => _isLoading = true);
+
     try {
-      final userCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
         email: emailCtrl.text.trim(),
-        password: passCtrl.text.trim(),
+        password: passwordCtrl.text.trim(),
       );
- 
-  await userCred.user!.sendEmailVerification();
 
-      await FirebaseFirestore.instance.collection('users').doc(userCred.user!.uid).set({
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'firstName': firstNameCtrl.text.trim(),
+        'lastName': lastNameCtrl.text.trim(),
         'email': emailCtrl.text.trim(),
-        'role': selectedRole,
+        'role': _selectedRole,
       });
 
-   ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification email sent. Please verify your email before logging in.')),
-      );
-      
+      await userCredential.user!.sendEmailVerification();
+
+      showToast('Registered successfully. Please verify your email.');
+
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Register failed: $e')));
+      showToast('Registration failed: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    firstNameCtrl.dispose();
+    lastNameCtrl.dispose();
+    emailCtrl.dispose();
+    passwordCtrl.dispose();
+    confirmPasswordCtrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(colors: [Color.fromARGB(255, 80, 79, 80), Color.fromARGB(255, 84, 84, 85)]),
-        ),
-        child: Center(
-          child: Card(
-            elevation: 10,
-            margin: const EdgeInsets.symmetric(horizontal: 30),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      appBar: AppBar(title: const Text('Register')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          onChanged: () => setState(() {}),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Create Account',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+
+              // First Name
+              TextFormField(
+                controller: firstNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'First Name',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'First name is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Last Name
+              TextFormField(
+                controller: lastNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Last Name',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                    value!.isEmpty ? 'Last name is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Email
+              TextFormField(
+                controller: emailCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Email is required';
+                  }
+                  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                  if (!emailRegex.hasMatch(value)) {
+                    return 'Enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Password
+              TextFormField(
+                controller: passwordCtrl,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Password is required';
+                  }
+                  if (value.length < 8) {
+                    return 'Password must be at least 8 characters';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Confirm Password
+              TextFormField(
+                controller: confirmPasswordCtrl,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirmPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility),
+                    onPressed: () => setState(
+                        () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  ),
+                ),
+                validator: (value) {
+                  if (value != passwordCtrl.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Role Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                decoration: const InputDecoration(
+                  labelText: 'Select Role',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Admin', child: Text('Admin')),
+                  DropdownMenuItem(value: 'User', child: Text('User')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _selectedRole = value ?? 'User'),
+              ),
+              const SizedBox(height: 16),
+
+              // Terms & Conditions Checkbox
+              Row(
                 children: [
-                  const Text('Register', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: emailCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Role',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'user', child: Text('User')),
-                      DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                    ],
+                  Checkbox(
+                    value: _agreedToTerms,
                     onChanged: (value) {
-                      setState(() {
-                        selectedRole = value!;
-                      });
+                      setState(() => _agreedToTerms = value!);
                     },
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: registerUser,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () =>
+                          setState(() => _agreedToTerms = !_agreedToTerms),
+                      child: const Text(
+                        'I agree to the Terms & Conditions',
+                        style: TextStyle(fontSize: 14),
+                      ),
                     ),
-                    child: const Text('Register'),
                   ),
                 ],
               ),
-            ),
+              if (!_agreedToTerms)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'You must agree to the Terms & Conditions',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Register Button
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      onPressed: isFormValid ? registerUser : null,
+                      child: const Text('Register'),
+                    ),
+            ],
           ),
         ),
       ),

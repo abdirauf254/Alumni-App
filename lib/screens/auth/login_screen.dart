@@ -6,35 +6,52 @@ import 'package:flutterauthentication/screens/auth/register_screen.dart';
 import 'package:flutterauthentication/screens/user/user_home.dart';
 import 'package:flutterauthentication/screens/auth/reset_password_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
 
-  LoginScreen({super.key});
+  bool isLoading = false;
+  bool _obscurePassword = true; // Manage password visibility
 
   void login(BuildContext context) async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final userCred = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailCtrl.text.trim(),
         password: passCtrl.text.trim(),
       );
- 
- // Check if email is verified
-    if (!(userCred.user?.emailVerified ?? false)) {
-      await FirebaseAuth.instance.signOut();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please verify your email before logging in.')),
-      );
-      return;
-    }
-    
-      final roleDoc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCred.user!.uid)
-              .get();
+
+      if (!(userCred.user?.emailVerified ?? false)) {
+        await FirebaseAuth.instance.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please verify your email before logging in.')),
+        );
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final roleDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCred.user!.uid)
+          .get();
 
       final role = roleDoc.data()?['role'];
+
+      setState(() {
+        isLoading = false;
+      });
 
       if (role == 'admin') {
         Navigator.pushReplacement(
@@ -48,9 +65,12 @@ class LoginScreen extends StatelessWidget {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
     }
   }
 
@@ -58,11 +78,14 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color.from(alpha: 1, red: 0.427, green: 0.424, blue: 0.427), Color.fromRGBO(132, 132, 133, 1)],
-          ),
-        ),
+      decoration: const BoxDecoration(
+       gradient: LinearGradient(
+        colors: [
+        Color.fromRGBO(109, 108, 109, 0.3),
+        Color.fromRGBO(132, 132, 133, 0.2),
+    ],
+  ),
+),
 
         child: Center(
           child: Card(
@@ -92,47 +115,56 @@ class LoginScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   TextField(
                     controller: passCtrl,
-                    decoration: const InputDecoration(
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => login(context),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      prefixIcon: const Icon(Icons.lock),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
                     ),
-                    child: const Text('Login'),
                   ),
+                  const SizedBox(height: 24),
+                  isLoading
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton(
+                          onPressed: () => login(context),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Login'),
+                        ),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
                       );
                     },
                     child: const Text('No account? Register'),
                   ),
-                const SizedBox(height: 7),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ResetPasswordScreen()),
-                ); // Navigate to Reset Password Screen
-              },
-              child: const Text('Forgot Password?'),
-            ),
-          ],
-              
+                  const SizedBox(height: 7),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ResetPasswordScreen()),
+                      );
+                    },
+                    child: const Text('Forgot Password?'),
+                  ),
+                ],
               ),
             ),
           ),

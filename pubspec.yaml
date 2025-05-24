@@ -66,6 +66,10 @@ dependencies:
   location: ^8.0.0
   google_maps_flutter: ^2.5.4
   universal_html: ^2.2.4
+  lottie: ^2.7.0
+  file_picker: ^6.1.1
+  uuid: ^4.5.1
+  datetime_picker_formfield_new: ^2.1.0
 
 dev_dependencies:
   flutter_test:
