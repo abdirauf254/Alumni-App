@@ -1,157 +1,283 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class ManageAnnouncementsScreen extends StatefulWidget {
   const ManageAnnouncementsScreen({super.key});
 
   @override
-  State<ManageAnnouncementsScreen> createState() => _ManageAnnouncementsScreenState();
+  State<ManageAnnouncementsScreen> createState() =>
+      _ManageAnnouncementsScreenState();
 }
 
 class _ManageAnnouncementsScreenState extends State<ManageAnnouncementsScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _searchController = TextEditingController();
-  final int _limit = 10;
+  final ScrollController _scrollController = ScrollController();
+  final int _perPage = 10;
+
+  List<DocumentSnapshot> _announcements = [];
   DocumentSnapshot? _lastDocument;
   bool _isLoading = false;
   bool _hasMore = true;
   String _searchQuery = '';
-  List<DocumentSnapshot> _announcements = [];
-  String? _userRole;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserRole();
     _fetchAnnouncements();
-  }
-
-  Future<void> _fetchUserRole() async {
-    User? user = _auth.currentUser;
-    if (user != null) {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
-      setState(() {
-        _userRole = userDoc['role'];
-      });
-    }
+    _scrollController.addListener(_scrollListener);
   }
 
   Future<void> _fetchAnnouncements() async {
     if (_isLoading || !_hasMore) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    Query query = _firestore
+    Query query = FirebaseFirestore.instance
         .collection('announcements')
         .orderBy('createdAt', descending: true)
-        .limit(_limit);
-
-    if (_searchQuery.isNotEmpty) {
-      query = query.where('title', isGreaterThanOrEqualTo: _searchQuery)
-                   .where('title', isLessThanOrEqualTo: '$_searchQuery\uf8ff');
-    }
+        .limit(_perPage);
 
     if (_lastDocument != null) {
       query = query.startAfterDocument(_lastDocument!);
     }
 
-    QuerySnapshot querySnapshot = await query.get();
-    if (querySnapshot.docs.length < _limit) {
+    final snapshot = await query.get();
+
+    if (snapshot.docs.isNotEmpty) {
+      _lastDocument = snapshot.docs.last;
+      _announcements.addAll(snapshot.docs);
+    } else {
       _hasMore = false;
     }
 
-    if (querySnapshot.docs.isNotEmpty) {
-      _lastDocument = querySnapshot.docs.last;
-      setState(() {
-        _announcements.addAll(querySnapshot.docs);
-      });
-    }
+    setState(() => _isLoading = false);
+  }
 
-    setState(() {
-      _isLoading = false;
-    });
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _fetchAnnouncements();
+    }
+  }
+
+  void _confirmView(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(data?['title'] ?? 'No Title'),
+        content: Text(data?['description'] ?? 'No Description'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(String id) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Announcement'),
+        content: const Text('Are you sure you want to delete this announcement?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAnnouncement(id);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _deleteAnnouncement(String id) async {
-    await _firestore.collection('announcements').doc(id).delete();
-    setState(() {
-      _announcements.removeWhere((doc) => doc.id == id);
-    });
+    try {
+      await FirebaseFirestore.instance.collection('announcements').doc(id).delete();
+      setState(() {
+        _announcements.removeWhere((doc) => doc.id == id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Announcement deleted')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Failed to delete: $e')),
+      );
+    }
   }
 
-  void _onSearchChanged(String value) {
-    setState(() {
-      _searchQuery = value;
-      _announcements.clear();
-      _lastDocument = null;
-      _hasMore = true;
-    });
-    _fetchAnnouncements();
+  void _editAnnouncement(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+    final titleController = TextEditingController(text: data?['title'] ?? '');
+    final descriptionController = TextEditingController(text: data?['description'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Edit Announcement'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Confirm Edit'),
+                  content: const Text('Are you sure you want to update this announcement?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('No'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Yes'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                try {
+                  await FirebaseFirestore.instance.collection('announcements').doc(doc.id).update({
+                    'title': titleController.text,
+                    'description': descriptionController.text,
+                  });
+                  setState(() {
+                    final index = _announcements.indexWhere((d) => d.id == doc.id);
+                    if (index != -1) {
+                      _announcements[index] = doc;
+                    }
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✅ Announcement updated')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('❌ Failed to update: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_userRole == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_userRole != 'admin') {
-      return const Scaffold(
-        body: Center(child: Text('Access Denied')),
-      );
-    }
+    final filteredAnnouncements = _announcements.where((doc) {
+      final data = doc.data() as Map<String, dynamic>?;
+      final title = data?['title']?.toString().toLowerCase() ?? '';
+      return title.contains(_searchQuery.toLowerCase());
+    }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Announcements'),
-      ),
+      appBar: AppBar(title: const Text('Manage Announcements')),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8),
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
-                labelText: 'Search Announcements',
+                labelText: 'Search by title',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
-              onChanged: _onSearchChanged,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
             ),
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: _announcements.length + 1,
+              controller: _scrollController,
+              itemCount: filteredAnnouncements.length + (_hasMore ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == _announcements.length) {
-                  if (_isLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (_hasMore) {
-                    _fetchAnnouncements();
-                    return const SizedBox.shrink();
-                  } else {
-                    return const Center(child: Text('No more announcements'));
-                  }
+                if (index >= filteredAnnouncements.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
                 }
 
-                var announcement = _announcements[index].data() as Map<String, dynamic>;
+                final doc = filteredAnnouncements[index];
+                final data = doc.data() as Map<String, dynamic>?;
+
+                final title = data?['title'] ?? 'No Title';
+                final description = data?['description'] ?? 'No Description';
+                final timestamp = data?['createdAt'] as Timestamp?;
+                final createdAt = timestamp?.toDate();
+
                 return Card(
-                  margin: const EdgeInsets.all(8.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
-                    title: Text(announcement['title']),
-                    subtitle: Text(announcement['description']),
-                    trailing: _userRole == 'admin'
-                        ? IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _deleteAnnouncement(_announcements[index].id),
-                          )
-                        : null,
+                    onTap: () => _confirmView(doc),
+                    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(description),
+                        if (createdAt != null)
+                          Text(
+                            'Posted on ${createdAt.toLocal()}',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                      ],
+                    ),
+                  trailing: Row(
+                     mainAxisSize: MainAxisSize.min,
+                       children: [
+                         IconButton(
+                           icon: const Icon(Icons.visibility, color: Colors.green),
+                             onPressed: () => _confirmView(doc),
+                          ),
+                       IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _editAnnouncement(doc),
+                          ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                               onPressed: () => _confirmDelete(doc.id),
+                        ),
+                     ],
+                  ),
+
                   ),
                 );
               },
@@ -160,5 +286,12 @@ class _ManageAnnouncementsScreenState extends State<ManageAnnouncementsScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 }

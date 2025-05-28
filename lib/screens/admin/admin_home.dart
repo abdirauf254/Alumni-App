@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Optional: if using Firebase Auth
-import 'package:flutterauthentication/screens/user/announcements_screen.dart';
 import 'dashboard_screen.dart';
 import 'manage_users_screen.dart';
-import 'user_messages_screen.dart';
 import 'push_notification_screen.dart';
 import 'create_event_screen.dart';
 import 'manage_events_screen.dart';
+import 'create_announcements_screen.dart';
+import 'manage_announcements_screen.dart';
+
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -20,26 +21,26 @@ class _AdminHomeState extends State<AdminHome> {
 
   late final List<Widget> _screens;
   final List<String> _titles = [
-    'Dashboard',
-    'Manage Users',
-    'Create Event',
-    'Manage Events',
-    'Announcements',
-    'User Messages',
-    'Push Notifications',
+   'Dashboard',
+  'Manage Users',
+  'Create Event',
+  'Manage Events',
+  'Create Announcement',
+  'Manage Announcements',
+  'Push Notifications',
   ];
 
   @override
   void initState() {
     super.initState();
     _screens = [
-      DashboardScreen(),
-      ManageUsersScreen(),
-      CreateEventScreen(),
-      ManageEventsScreen(),
-      AnnouncementsScreen(),
-      UserMessagesScreen(),
-      PushNotificationScreen(),
+    DashboardScreen(),
+    ManageUsersScreen(),
+    CreateEventScreen(),
+    ManageEventsScreen(),
+    CreateAnnouncementsScreen(),
+    ManageAnnouncementsScreen(),
+    PushNotificationScreen(),
     ];
   }
 
@@ -93,8 +94,8 @@ class _AdminHomeState extends State<AdminHome> {
             _buildDrawerItem(Icons.group, 'Manage Users', 1),
             _buildDrawerItem(Icons.event, 'Create Event', 2),
             _buildDrawerItem(Icons.event_available, 'Manage Events', 3),
-            _buildDrawerItem(Icons.announcement, 'Announcements', 4),
-            _buildDrawerItem(Icons.message, 'User Messages', 5),
+            _buildDrawerItem(Icons.campaign, 'Create Announcement', 4),
+            _buildDrawerItem(Icons.manage_search, 'Manage Announcements', 5),
             _buildDrawerItem(Icons.notifications, 'Push Notifications', 6),
 
           ],

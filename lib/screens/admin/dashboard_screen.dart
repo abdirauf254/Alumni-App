@@ -8,7 +8,6 @@ class DashboardScreen extends StatelessWidget {
     final usersSnapshot = await FirebaseFirestore.instance.collection('users').get();
     final eventsSnapshot = await FirebaseFirestore.instance.collection('events').get();
     final announcementsSnapshot = await FirebaseFirestore.instance.collection('announcements').get();
-    final messagesSnapshot = await FirebaseFirestore.instance.collection('messages').get();
 
     int totalUsers = 0;
     int totalAdmins = 0;
@@ -27,7 +26,6 @@ class DashboardScreen extends StatelessWidget {
       'admins': totalAdmins,
       'events': eventsSnapshot.size,
       'announcements': announcementsSnapshot.size,
-      'messages': messagesSnapshot.size,
     };
   }
 
@@ -56,7 +54,6 @@ class DashboardScreen extends StatelessWidget {
               _buildStatCard('Admins', data['admins']!, Colors.green),
               _buildStatCard('Events', data['events']!, Colors.orange),
               _buildStatCard('Announcements', data['announcements']!, Colors.purple),
-              _buildStatCard('Messages', data['messages']!, Colors.red),
             ],
           ),
         );
