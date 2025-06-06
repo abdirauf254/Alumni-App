@@ -23,6 +23,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
   String? _imageUrl;
   File? _newImageFile;
   bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -31,18 +32,25 @@ class _EditEventScreenState extends State<EditEventScreen> {
   }
 
   Future<void> _loadEventData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('events')
-        .doc(widget.eventId)
-        .get();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('events')
+          .doc(widget.eventId)
+          .get();
 
-    final data = doc.data();
-    if (data != null) {
-      _titleController.text = data['title'] ?? '';
-      _descriptionController.text = data['description'] ?? '';
-      _locationController.text = data['location'] ?? '';
-      _selectedDateTime = (data['dateTime'] as Timestamp).toDate();
-      _imageUrl = data['imageUrl'];
+      final data = doc.data();
+      if (data != null) {
+        _titleController.text = data['title'] ?? '';
+        _descriptionController.text = data['description'] ?? '';
+        _locationController.text = data['location'] ?? '';
+        _selectedDateTime = (data['dateTime'] as Timestamp).toDate();
+        _imageUrl = data['imageUrl'];
+      }
+    } catch (e) {
+      print('Error loading event: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load event')),
+      );
     }
 
     setState(() => _isLoading = false);
@@ -86,36 +94,63 @@ class _EditEventScreenState extends State<EditEventScreen> {
   }
 
   Future<String?> _uploadImage(File imageFile) async {
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('event_images')
-        .child('${widget.eventId}.jpg');
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('event_images')
+          .child('${widget.eventId}.jpg');
 
-    await ref.putFile(imageFile);
-    return await ref.getDownloadURL();
+      await ref.putFile(imageFile);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      print('Image upload failed: $e');
+      return null;
+    }
   }
 
   Future<void> _saveEvent() async {
-    if (!_formKey.currentState!.validate() || _selectedDateTime == null) return;
+    if (!_formKey.currentState!.validate()) return;
 
-    String? finalImageUrl = _imageUrl;
-
-    if (_newImageFile != null) {
-      finalImageUrl = await _uploadImage(_newImageFile!);
+    if (_selectedDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please pick a date and time')),
+      );
+      return;
     }
 
-    await FirebaseFirestore.instance
-        .collection('events')
-        .doc(widget.eventId)
-        .update({
-      'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'location': _locationController.text.trim(),
-      'dateTime': _selectedDateTime,
-      'imageUrl': finalImageUrl,
-    });
+    setState(() => _isSaving = true);
 
-    Navigator.pop(context);
+    try {
+      String? finalImageUrl = _imageUrl;
+
+      if (_newImageFile != null) {
+        finalImageUrl = await _uploadImage(_newImageFile!);
+      }
+
+      await FirebaseFirestore.instance
+          .collection('events')
+          .doc(widget.eventId)
+          .update({
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'location': _locationController.text.trim(),
+        'dateTime': _selectedDateTime,
+        'imageUrl': finalImageUrl,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Event updated successfully')),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      print('Save event failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save changes')),
+      );
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -168,10 +203,12 @@ class _EditEventScreenState extends State<EditEventScreen> {
                       onTap: _pickDateTime,
                     ),
                     SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _saveEvent,
-                      child: Text('Save'),
-                    ),
+                    _isSaving
+                        ? CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: _saveEvent,
+                            child: Text('Save'),
+                          ),
                   ],
                 ),
               ),
