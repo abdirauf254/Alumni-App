@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,7 +11,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController firstNameCtrl = TextEditingController();
   final TextEditingController lastNameCtrl = TextEditingController();
   final TextEditingController emailCtrl = TextEditingController();
@@ -23,20 +21,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   bool _agreedToTerms = false;
-  String _selectedRole = 'User';
 
-  bool get isFormValid =>
-      _formKey.currentState?.validate() ?? false;
-
-  void showToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: const Color.fromARGB(221, 69, 51, 173),
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
+  bool get isFormValid {
+    return (_formKey.currentState?.validate() ?? false) && _agreedToTerms;
   }
 
   void registerUser() async {
@@ -45,8 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailCtrl.text.trim(),
         password: passwordCtrl.text.trim(),
       );
@@ -58,16 +44,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'firstName': firstNameCtrl.text.trim(),
         'lastName': lastNameCtrl.text.trim(),
         'email': emailCtrl.text.trim(),
-        'role': _selectedRole,
+        'role': 'user', // default role always user
       });
 
       await userCredential.user!.sendEmailVerification();
 
-      showToast('Registered successfully. Please verify your email.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registered successfully. Please verify your email.')),
+      );
 
       Navigator.pop(context);
     } catch (e) {
-      showToast('Registration failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration failed: $e')),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -95,8 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Create Account',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text('Create Account', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
 
               // First Name
@@ -106,8 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'First Name',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value!.isEmpty ? 'First name is required' : null,
+                validator: (value) => value!.isEmpty ? 'First name is required' : null,
               ),
               const SizedBox(height: 16),
 
@@ -118,8 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'Last Name',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Last name is required' : null,
+                validator: (value) => value!.isEmpty ? 'Last name is required' : null,
               ),
               const SizedBox(height: 16),
 
@@ -131,13 +118,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Email is required';
-                  }
+                  if (value == null || value.isEmpty) return 'Email is required';
                   final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                  if (!emailRegex.hasMatch(value)) {
-                    return 'Enter a valid email';
-                  }
+                  if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
                   return null;
                 },
               ),
@@ -151,20 +134,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'Password',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Password is required';
-                  }
-                  if (value.length < 8) {
-                    return 'Password must be at least 8 characters';
-                  }
+                  if (value == null || value.isEmpty) return 'Password is required';
+                  if (value.length < 8) return 'Password must be at least 8 characters';
                   return null;
                 },
               ),
@@ -178,35 +154,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'Confirm Password',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscureConfirmPassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
-                    onPressed: () => setState(
-                        () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                   ),
                 ),
                 validator: (value) {
-                  if (value != passwordCtrl.text) {
-                    return 'Passwords do not match';
-                  }
+                  if (value != passwordCtrl.text) return 'Passwords do not match';
                   return null;
                 },
-              ),
-              const SizedBox(height: 16),
-
-              // Role Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'Select Role',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-                  DropdownMenuItem(value: 'User', child: Text('User')),
-                ],
-                onChanged: (value) =>
-                    setState(() => _selectedRole = value ?? 'User'),
               ),
               const SizedBox(height: 16),
 
@@ -221,8 +176,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _agreedToTerms = !_agreedToTerms),
+                      onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
                       child: const Text(
                         'I agree to the Terms & Conditions',
                         style: TextStyle(fontSize: 14),
@@ -240,9 +194,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              // Register Button
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(

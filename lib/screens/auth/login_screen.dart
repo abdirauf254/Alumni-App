@@ -31,17 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: passCtrl.text.trim(),
       );
 
-      if (!(userCred.user?.emailVerified ?? false)) {
-        await FirebaseAuth.instance.signOut();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please verify your email before logging in.')),
-        );
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
       final roleDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userCred.user!.uid)
@@ -78,110 +67,129 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color.fromARGB(151, 63, 2, 233),
-              Color.fromARGB(223, 9, 0, 134),
+              Color(0xFF512DA8),
+              Color(0xFF311B92),
             ],
           ),
         ),
         child: Center(
-          child: Card(
-            elevation: 10,
-            margin: const EdgeInsets.symmetric(horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SingleChildScrollView(
-child: Column(
-  mainAxisSize: MainAxisSize.min,
-  crossAxisAlignment: CrossAxisAlignment.stretch,
-  children: [
-    const Text(
-      'Welcome Back!',
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-      ),
-      textAlign: TextAlign.center,
-    ),
-    const SizedBox(height: 6),
-    const Text(
-      'Login',
-      style: TextStyle(fontSize: 16),
-      textAlign: TextAlign.center,
-    ),
-    const SizedBox(height: 12),
-    TextField(
-      controller: emailCtrl,
-      decoration: const InputDecoration(
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        labelText: 'Email',
-        prefixIcon: Icon(Icons.email),
-        border: OutlineInputBorder(),
-      ),
-    ),
-    const SizedBox(height: 10),
-    TextField(
-      controller: passCtrl,
-      obscureText: _obscurePassword,
-      decoration: InputDecoration(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        labelText: 'Password',
-        prefixIcon: const Icon(Icons.lock),
-        border: const OutlineInputBorder(),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-          ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
-        ),
-      ),
-    ),
-    const SizedBox(height: 14),
-    isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : ElevatedButton(
-            onPressed: () => login(context),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              textStyle: const TextStyle(fontSize: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          child: SingleChildScrollView(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 15,
+                    offset: Offset(0, 10),
+                  ),
+                ],
               ),
-            ),
-            child: const Text('Login'),
-          ),
-    const SizedBox(height: 8),
-    TextButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const RegisterScreen()),
-        );
-      },
-      child: const Text('No account? Register'),
-    ),
-    TextButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ResetPasswordScreen()),
-        );
-      },
-      child: const Text('Forgot Password?'),
-    ),
-  ],
-),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Welcome Back!',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF311B92),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Login to continue',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Email Field
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: const Icon(Icons.email),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password Field
+                  TextField(
+                    controller: passCtrl,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Login Button
+                  isLoading
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton(
+                          onPressed: () => login(context),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: const Color.fromRGBO(212, 209, 219, 1),
+                          ),
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+
+                  const SizedBox(height: 16),
+
+                  // Navigation Links
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      );
+                    },
+                    child: const Text("Don't have an account? Register"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ResetPasswordScreen()),
+                      );
+                    },
+                    child: const Text("Forgot Password?"),
+                  ),
+                ],
               ),
             ),
           ),
