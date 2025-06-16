@@ -44,7 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'firstName': firstNameCtrl.text.trim(),
         'lastName': lastNameCtrl.text.trim(),
         'email': emailCtrl.text.trim(),
-        'role': 'user', // default role always user
+        'role': 'user',
       });
 
       await userCredential.user!.sendEmailVerification();
@@ -76,133 +76,161 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          onChanged: () => setState(() {}),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Create Account', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-
-              // First Name
-              TextFormField(
-                controller: firstNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'First Name',
-                  border: OutlineInputBorder(),
+      backgroundColor: const Color(0xFF512DA8), // Blue background
+      appBar: AppBar(
+        title: const Text('Register'),
+        backgroundColor: const Color(0xFF512DA8),
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 15,
+                  offset: Offset(0, 10),
                 ),
-                validator: (value) => value!.isEmpty ? 'First name is required' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // Last Name
-              TextFormField(
-                controller: lastNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Last Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value!.isEmpty ? 'Last name is required' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // Email
-              TextFormField(
-                controller: emailCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Email is required';
-                  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                  if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Password
-              TextFormField(
-                controller: passwordCtrl,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Password is required';
-                  if (value.length < 8) return 'Password must be at least 8 characters';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Confirm Password
-              TextFormField(
-                controller: confirmPasswordCtrl,
-                obscureText: _obscureConfirmPassword,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Password',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                  ),
-                ),
-                validator: (value) {
-                  if (value != passwordCtrl.text) return 'Passwords do not match';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Terms & Conditions Checkbox
-              Row(
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              onChanged: () => setState(() {}),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Checkbox(
-                    value: _agreedToTerms,
-                    onChanged: (value) {
-                      setState(() => _agreedToTerms = value!);
+                  const Text('Create Account', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+
+                  // First Name
+                  TextFormField(
+                    controller: firstNameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'First Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => value!.isEmpty ? 'First name is required' : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Last Name
+                  TextFormField(
+                    controller: lastNameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Last Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) => value!.isEmpty ? 'Last name is required' : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Email
+                  TextFormField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Email is required';
+                      final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                      if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
+                      return null;
                     },
                   ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
-                      child: const Text(
-                        'I agree to the Terms & Conditions',
-                        style: TextStyle(fontSize: 14),
+                  const SizedBox(height: 16),
+
+                  // Password
+                  TextFormField(
+                    controller: passwordCtrl,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Password is required';
+                      if (value.length < 8) return 'Password must be at least 8 characters';
+                      return null;
+                    },
                   ),
+                  const SizedBox(height: 16),
+
+                  // Confirm Password
+                  TextFormField(
+                    controller: confirmPasswordCtrl,
+                    obscureText: _obscureConfirmPassword,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value != passwordCtrl.text) return 'Passwords do not match';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Terms & Conditions Checkbox
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _agreedToTerms,
+                        onChanged: (value) {
+                          setState(() => _agreedToTerms = value!);
+                        },
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
+                          child: const Text(
+                            'I agree to the Terms & Conditions',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!_agreedToTerms)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'You must agree to the Terms & Conditions',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: const Color.fromRGBO(210, 212, 216, 1),
+                          ),
+                          onPressed: isFormValid ? registerUser : null,
+                          child: const Text('Register', style: TextStyle(fontSize: 16)),
+                        ),
                 ],
               ),
-              if (!_agreedToTerms)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'You must agree to the Terms & Conditions',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                ),
-
-              const SizedBox(height: 24),
-
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: isFormValid ? registerUser : null,
-                      child: const Text('Register'),
-                    ),
-            ],
+            ),
           ),
         ),
       ),
