@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,7 +10,7 @@ import 'announcements_screen.dart';
 import 'dashboard_screen.dart';
 import 'submit_feedback_screen.dart';
 
-
+// 🔔 Local Notification Plugin
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -22,9 +23,8 @@ void _showLocalNotification(String? title, String? body) async {
     priority: Priority.high,
   );
 
-  const NotificationDetails notificationDetails = NotificationDetails(
-    android: androidDetails,
-  );
+  const NotificationDetails notificationDetails =
+      NotificationDetails(android: androidDetails);
 
   await flutterLocalNotificationsPlugin.show(
     0,
@@ -60,33 +60,46 @@ class _UserHomeState extends State<UserHomeScreen> {
     'Feedback',
   ];
 
-@override
-void initState() {
-  super.initState();
-  _initializeNotification();
+  @override
+  void initState() {
+    super.initState();
+    _initializeNotification();
+  }
 
-  // 👇 Listen for foreground messages
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    if (message.notification != null) {
-      _showLocalNotification(
-        message.notification!.title,
-        message.notification!.body,
-      );
-    }
-  });
-}
-
-Future<void> _initializeNotification() async {
+  Future<void> _initializeNotification() async {
+    // ✅ Request permissions
     await FirebaseMessaging.instance.requestPermission();
 
+    // ✅ Setup local notification channel
     const AndroidInitializationSettings androidInitSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-
     const InitializationSettings initSettings =
         InitializationSettings(android: androidInitSettings);
 
     await flutterLocalNotificationsPlugin.initialize(initSettings);
 
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'announcements_channel',
+      'Announcements',
+      description: 'Channel for admin announcement notifications',
+      importance: Importance.high,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    // ✅ Save user's FCM token to Firestore
+    final token = await FirebaseMessaging.instance.getToken();
+    final user = FirebaseAuth.instance.currentUser;
+    if (token != null && user != null) {
+      await FirebaseFirestore.instance
+          .collection('user_tokens')
+          .doc(user.uid)
+          .set({'token': token});
+    }
+
+    // ✅ Handle foreground notifications
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.notification != null) {
         _showLocalNotification(
@@ -113,7 +126,7 @@ Future<void> _initializeNotification() async {
     if (confirm == true) {
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/login'); // Make sure this route exists
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 
