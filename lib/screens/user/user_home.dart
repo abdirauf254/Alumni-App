@@ -154,7 +154,7 @@ class _UserHomeState extends State<UserHomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
           BottomNavigationBarItem(icon: Icon(Icons.campaign), label: 'Announcements'),
-          BottomNavigationBarItem(icon: Icon(Icons.feedback), label: 'Feedback'),
+          BottomNavigationBarItem(icon: Icon(Icons.feedback), label: 'Feedbackw'),
         ],
       ),
     );
