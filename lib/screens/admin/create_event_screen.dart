@@ -1,10 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:path/path.dart' as path;
-import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:datetime_picker_formfield_new/datetime_picker_formfield.dart';
 
@@ -22,45 +17,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   String description = '';
   String location = '';
   DateTime? dateTime;
-  Uint8List? imageBytes;
-  XFile? pickedXFile;
   bool isUploading = false;
 
-  final picker = ImagePicker();
   final format = DateFormat("yyyy-MM-dd HH:mm");
-
-  Future<void> pickImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      final bytes = await pickedFile.readAsBytes();
-      setState(() {
-        imageBytes = bytes;
-        pickedXFile = pickedFile;
-      });
-    }
-  }
-
-  Future<String?> uploadImage(XFile file) async {
-    try {
-      final fileName = const Uuid().v4() + path.extension(file.path);
-      final storageRef = FirebaseStorage.instance.ref().child('event_images/$fileName');
-      final uploadTask = await storageRef.putData(await file.readAsBytes());
-      return await uploadTask.ref.getDownloadURL();
-    } catch (e) {
-      debugPrint('Image upload error: $e');
-      return null;
-    }
-  }
 
   Future<void> _createEvent() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() => isUploading = true);
-
-      String? imageUrl;
-      if (pickedXFile != null) {
-        imageUrl = await uploadImage(pickedXFile!);
-      }
 
       try {
         await FirebaseFirestore.instance.collection('events').add({
@@ -68,7 +32,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           'description': description,
           'location': location,
           'dateTime': dateTime?.toIso8601String(),
-          'imageUrl': imageUrl ?? '',
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -139,15 +102,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       },
                       onSaved: (value) => dateTime = value,
                       validator: (value) => value == null ? 'Select date & time' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    imageBytes != null
-                        ? Image.memory(imageBytes!, height: 150)
-                        : const Text('No image selected'),
-                    ElevatedButton.icon(
-                      onPressed: pickImage,
-                      icon: const Icon(Icons.image),
-                      label: const Text('Pick Image'),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(

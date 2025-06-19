@@ -1,8 +1,5 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 class EditEventScreen extends StatefulWidget {
   final String eventId;
@@ -20,8 +17,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
   final _locationController = TextEditingController();
 
   DateTime? _selectedDateTime;
-  String? _imageUrl;
-  File? _newImageFile;
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -44,7 +39,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
         _descriptionController.text = data['description'] ?? '';
         _locationController.text = data['location'] ?? '';
         _selectedDateTime = (data['dateTime'] as Timestamp).toDate();
-        _imageUrl = data['imageUrl'];
       }
     } catch (e) {
       print('Error loading event: $e');
@@ -84,30 +78,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
     });
   }
 
-  Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        _newImageFile = File(picked.path);
-      });
-    }
-  }
-
-  Future<String?> _uploadImage(File imageFile) async {
-    try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('event_images')
-          .child('${widget.eventId}.jpg');
-
-      await ref.putFile(imageFile);
-      return await ref.getDownloadURL();
-    } catch (e) {
-      print('Image upload failed: $e');
-      return null;
-    }
-  }
-
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -121,12 +91,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
     setState(() => _isSaving = true);
 
     try {
-      String? finalImageUrl = _imageUrl;
-
-      if (_newImageFile != null) {
-        finalImageUrl = await _uploadImage(_newImageFile!);
-      }
-
       await FirebaseFirestore.instance
           .collection('events')
           .doc(widget.eventId)
@@ -135,7 +99,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
         'description': _descriptionController.text.trim(),
         'location': _locationController.text.trim(),
         'dateTime': _selectedDateTime,
-        'imageUrl': finalImageUrl,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -165,15 +128,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    if (_imageUrl != null && _newImageFile == null)
-                      Image.network(_imageUrl!, height: 150, fit: BoxFit.cover),
-                    if (_newImageFile != null)
-                      Image.file(_newImageFile!, height: 150, fit: BoxFit.cover),
-                    TextButton.icon(
-                      onPressed: _pickImage,
-                      icon: Icon(Icons.image),
-                      label: Text('Change Image'),
-                    ),
                     TextFormField(
                       controller: _titleController,
                       decoration: InputDecoration(labelText: 'Title'),

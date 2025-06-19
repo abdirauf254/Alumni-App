@@ -7,6 +7,7 @@ import 'create_event_screen.dart';
 import 'manage_events_screen.dart';
 import 'create_announcements_screen.dart';
 import 'manage_announcements_screen.dart';
+import 'view_feedbacks_screen.dart';
 
 
 class AdminHome extends StatefulWidget {
@@ -28,6 +29,7 @@ class _AdminHomeState extends State<AdminHome> {
   'Create Announcement',
   'Manage Announcements',
   'Push Notifications',
+  'View Feedbacks',
   ];
 
   @override
@@ -41,6 +43,7 @@ class _AdminHomeState extends State<AdminHome> {
     CreateAnnouncementsScreen(),
     ManageAnnouncementsScreen(),
     PushNotificationScreen(),
+    ViewFeedbacksScreen(), // Ensure this screen is implemented
     ];
   }
 
@@ -51,14 +54,23 @@ class _AdminHomeState extends State<AdminHome> {
     });
   }
 
-  Future<void> _handleLogout() async {
-    try {
-      await FirebaseAuth.instance.signOut(); // If using Firebase Auth
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: $e')),
-      );
+  Future<void> _logout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Do you want to logout?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/login'); // Make sure this route exists
     }
   }
 
@@ -70,7 +82,7 @@ class _AdminHomeState extends State<AdminHome> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: _handleLogout,
+            onPressed: () => _logout(context),
           ),
         ],
       ),
@@ -97,6 +109,7 @@ class _AdminHomeState extends State<AdminHome> {
             _buildDrawerItem(Icons.campaign, 'Create Announcement', 4),
             _buildDrawerItem(Icons.manage_search, 'Manage Announcements', 5),
             _buildDrawerItem(Icons.notifications, 'Push Notifications', 6),
+            _buildDrawerItem(Icons.feedback, 'View Feedbacks', 7),
 
           ],
         ),

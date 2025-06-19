@@ -76,10 +76,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF512DA8), // Blue background
+      backgroundColor: const Color.fromARGB(255, 7, 7, 7), // Blue background
       appBar: AppBar(
         title: const Text('Register'),
-        backgroundColor: const Color(0xFF512DA8),
+        backgroundColor: const Color.fromARGB(255, 8, 8, 8),
         foregroundColor: Colors.white,
       ),
       body: Center(
@@ -88,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color.fromARGB(255, 33, 215, 221),
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
                 BoxShadow(
@@ -223,8 +223,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            backgroundColor: const Color.fromRGBO(210, 212, 216, 1),
-                          ),
+                            backgroundColor: const Color.from(alpha: 1, red: 0.412, green: 0.02, blue: 0.039)                        ),
                           onPressed: isFormValid ? registerUser : null,
                           child: const Text('Register', style: TextStyle(fontSize: 16)),
                         ),

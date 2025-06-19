@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const UserHome()),
+          MaterialPageRoute(builder: (_) => UserHomeScreen()),
         );
       }
     } catch (e) {
@@ -74,8 +74,8 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF512DA8),
-              Color(0xFF311B92),
+              Color.fromARGB(255, 17, 17, 17),
+              Color.fromARGB(255, 18, 18, 19),
             ],
           ),
         ),
@@ -85,11 +85,11 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: const BoxConstraints(maxWidth: 400),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color.fromARGB(255, 22, 167, 177),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: const [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Color.fromARGB(230, 252, 248, 248),
                     blurRadius: 15,
                     offset: Offset(0, 10),
                   ),
@@ -109,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'Login to continue',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 49, 27, 146)),
                   ),
                   const SizedBox(height: 20),
 
@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            backgroundColor: const Color.fromRGBO(212, 209, 219, 1),
+                            backgroundColor: const Color.fromARGB(255, 226, 7, 73),
                           ),
                           child: const Text(
                             'Login',

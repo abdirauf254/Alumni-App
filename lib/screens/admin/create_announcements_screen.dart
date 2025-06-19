@@ -12,20 +12,20 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  String _selectedCategory = 'General'; // Default category
 
   bool _isLoading = false;
 
   Future<void> _submitAnnouncement() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       await FirebaseFirestore.instance.collection('announcements').add({
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
+        'category': _selectedCategory,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -36,14 +36,15 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
       _formKey.currentState!.reset();
       _titleController.clear();
       _descriptionController.clear();
+      setState(() {
+        _selectedCategory = 'General';
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ Failed: $e')),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
@@ -86,6 +87,24 @@ class _CreateAnnouncementsScreenState extends State<CreateAnnouncementsScreen> {
                 maxLines: 4,
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Description is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'General', child: Text('General')),
+                  DropdownMenuItem(value: 'Event', child: Text('Event')),
+                  DropdownMenuItem(value: 'Job', child: Text('Job')),
+                ],
+                onChanged: (value) => setState(() {
+                  _selectedCategory = value!;
+                }),
               ),
               const SizedBox(height: 24),
 

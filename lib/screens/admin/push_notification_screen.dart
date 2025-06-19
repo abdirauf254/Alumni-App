@@ -16,48 +16,57 @@ class _PushNotificationScreenState extends State<PushNotificationScreen> {
 
   // Your FCM server key
   final String serverKey = 'YOUR_FIREBASE_SERVER_KEY'; // Replace this with your actual FCM key
+Future<void> _sendNotificationToAllUsers() async {
+  if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _sendNotificationToAllUsers() async {
-    if (!_formKey.currentState!.validate()) return;
+  setState(() => _isSending = true);
 
-    setState(() => _isSending = true);
+  final title = _titleController.text.trim();
+  final body = _bodyController.text.trim();
 
-    try {
-      // Get all tokens
-      final snapshot = await FirebaseFirestore.instance.collection('user_tokens').get();
+  try {
+    // ✅ Save to Firestore
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'title': title,
+      'body': body,
+      'timestamp': Timestamp.now(),
+    });
 
-      final tokens = snapshot.docs.map((doc) => doc['token']).toList();
+    // ✅ Get all user tokens
+    final snapshot = await FirebaseFirestore.instance.collection('user_tokens').get();
+    final tokens = snapshot.docs.map((doc) => doc['token']).toList();
 
-      for (String token in tokens) {
-        await http.post(
-          Uri.parse('https://fcm.googleapis.com/fcm/send'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'key=$serverKey',
+    for (String token in tokens) {
+      await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'key=$serverKey',
+        },
+        body: jsonEncode({
+          'to': token,
+          'notification': {
+            'title': title,
+            'body': body,
           },
-          body: jsonEncode({
-            'to': token,
-            'notification': {
-              'title': _titleController.text.trim(),
-              'body': _bodyController.text.trim(),
-            },
-            'priority': 'high',
-          }),
-        );
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Notification sent to all users!')),
-      );
-    } catch (e) {
-      print('Error sending notifications: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send notifications')),
+          'priority': 'high',
+        }),
       );
     }
 
-    setState(() => _isSending = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Notification sent and saved!')),
+    );
+  } catch (e) {
+    print('Error sending notifications: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to send notifications')),
+    );
   }
+
+  setState(() => _isSending = false);
+}
+
 
   @override
   Widget build(BuildContext context) {

@@ -81,7 +81,6 @@ class _ManageEventsScreenState extends State<ManageEventsScreen> {
     );
 
     if (confirm == true) {
-      final imageUrl = event['imageUrl'] as String?;
       final title = event['title'] ?? '';
       final description = event['description'] ?? '';
       final rawDate = event['dateTime'];
@@ -102,9 +101,6 @@ class _ManageEventsScreenState extends State<ManageEventsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (imageUrl != null && imageUrl.isNotEmpty)
-                Image.network(imageUrl),
-              SizedBox(height: 10),
               Text(description),
               SizedBox(height: 10),
               Text('Date: ${dateTime.toLocal().toString().split(' ')[0]}'),
@@ -167,7 +163,6 @@ class _ManageEventsScreenState extends State<ManageEventsScreen> {
                         itemCount: _filteredEvents.length,
                         itemBuilder: (context, index) {
                           final event = _filteredEvents[index];
-                          final imageUrl = event['imageUrl'] as String?;
                           final title = event['title'] as String? ?? '';
                           final description = event['description'] as String? ?? '';
                           final rawDate = event['dateTime'];
@@ -182,9 +177,7 @@ class _ManageEventsScreenState extends State<ManageEventsScreen> {
                           }
 
                           return ListTile(
-                            leading: imageUrl != null && imageUrl.isNotEmpty
-                                ? Image.network(imageUrl, width: 50, height: 50, fit: BoxFit.cover)
-                                : Icon(Icons.event),
+                            leading: Icon(Icons.event),
                             title: Text(title),
                             subtitle: Text(
                                 '${description}\n${dateTime.toLocal().toString().split(' ')[0]}'),
