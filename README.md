@@ -1,7 +1,7 @@
-# flutterauthentication
+# alumni-app
 
-A new Flutter project.
-
+ctrl+shift+p A new Flutter project.                                                                                                         
+flutter pub get                                                                                                                                                                                                                          flutter run
 ## Getting Started
 
 This project is a starting point for a Flutter application.
