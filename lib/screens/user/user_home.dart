@@ -152,7 +152,7 @@ class _UserHomeState extends State<UserHomeScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Eventss'),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
           BottomNavigationBarItem(icon: Icon(Icons.campaign), label: 'Announcements'),
           BottomNavigationBarItem(icon: Icon(Icons.feedback), label: 'Feedback'),
         ],
